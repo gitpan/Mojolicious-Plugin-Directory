@@ -1,0 +1,26 @@
+---
+abstract: 'Serve static files from document root with directory index'
+author:
+  - 'hayajo <hayajo@cpan.org>'
+build_requires:
+  ExtUtils::MakeMaker: 6.36
+configure_requires:
+  ExtUtils::MakeMaker: 6.36
+distribution_type: module
+dynamic_config: 1
+generated_by: 'Module::Install version 1.06'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Mojolicious-Plugin-Directory
+no_index:
+  directory:
+    - inc
+    - t
+requires:
+  Mojolicious: 3.02
+resources:
+  license: http://dev.perl.org/licenses/
+  repository: https://github.com/hayajo/Mojolicious-Plugin-Directory.git
+version: 0.02
