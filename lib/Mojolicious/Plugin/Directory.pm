@@ -1,7 +1,7 @@
 package Mojolicious::Plugin::Directory;
 use strict;
 use warnings;
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Cwd ();
 use Encode ();
@@ -11,7 +11,7 @@ use Mojo::Base qw{ Mojolicious::Plugin };
 # Stolen from Plack::App::Direcotry
 my $dir_page = <<'PAGE';
 <html><head>
-  <title>Index of <%= $cur_url %></title>
+  <title>Index of <%= $cur_path %></title>
   <meta http-equiv="content-type" content="text/html; charset=utf-8" />
   <style type='text/css'>
 table { width:100%%; }
@@ -21,7 +21,7 @@ table { width:100%%; }
 .mtime { width:15em; }
   </style>
 </head><body>
-<h1>Index of <%= $cur_url %></h1>
+<h1>Index of <%= $cur_path %></h1>
 <hr />
 <table>
   <tr>
@@ -38,7 +38,7 @@ table { width:100%%; }
 </body></html>
 PAGE
 
-my $types   = Mojolicious::Types->new;
+my $types = Mojolicious::Types->new;
 
 sub register {
     my $self = shift;
@@ -53,7 +53,7 @@ sub register {
             my $c = shift;
             return render_file( $c, $root )
                 if ( -f $root->to_string() );
-            given ( my $path = $root->rel_dir( Mojo::Util::url_unescape($c->req->url) ) ) {
+            given ( my $path = $root->rel_dir( Mojo::Util::url_unescape( $c->req->url->path ) ) ) {
                 when (-f) {
                     $handler->( $c, $path )
                         if ( $handler && ref $handler eq 'CODE' );
@@ -89,10 +89,10 @@ sub render_indexes {
         push @children, Encode::decode_utf8($ent);
     }
 
-    my $cur_url = Encode::decode_utf8( Mojo::Util::url_unescape( $c->req->url ) );
+    my $cur_path = Encode::decode_utf8( Mojo::Util::url_unescape( $c->req->url->path ) );
     for my $basename ( sort { $a cmp $b } @children ) {
         my $file = "$dir/$basename";
-        my $url  = Mojo::Path->new($cur_url)->trailing_slash(0);
+        my $url  = Mojo::Path->new($cur_path)->trailing_slash(0);
         push @{ $url->parts }, $basename;
 
         my $is_dir = -d $file;
@@ -117,7 +117,7 @@ sub render_indexes {
         };
     }
 
-    $c->render( inline => $dir_page, files => \@files, cur_url => $cur_url );
+    $c->render( inline => $dir_page, files => \@files, cur_path => $cur_path );
 }
 
 sub get_ext {
@@ -158,33 +158,56 @@ Mojolicious::Plugin::Directory - Serve static files from document root with dire
 
 =head1 DESCRIPTION
 
-Mojolicious::Plugin::Directory is a static file server directory index a la Apache's mod_autoindex.
+L<Mojolicious::Plugin::Directory> is a static file server directory index a la Apache's mod_autoindex.
 
-=head1 CONFIGURATION
+=head1 METHODS
 
-=over 4
+L<Mojolicious::Plugin::Process> inherits all methods from L<Mojolicios::Plugin>.
 
-=item root
+=head1 OPTIONS
 
- Document root directory. Defaults to the current directory.
+Mojolicious::Plugin::Directory supports the following options.
 
- if root is a file, serve only root file.
+=head2 C<root>
 
-=item dir_page
+  # Mojolicious::Lite
+  plugin Directory => { root => "/path/to/htdocs" };
 
- a HTML template of index page
+Document root directory. Defaults to the current directory.
 
-=item handler
+if root is a file, serve only root file.
 
- CODE BLOCK for handle a request file.
+=head2 C<dir_page>
 
- if not rendered in CODE BLOCK, serve as static file.
+  # Mojolicious::Lite
+  plugin Directory => { dir_page => $template_str };
 
-=back
+a HTML template of index page
+
+=head2 C<handler>
+
+  # Mojolicious::Lite
+  use Text::Markdown qw{ markdown };
+  use Path::Class;
+  use Encode qw{ decode_utf8 };
+  plugin Directory => {
+      handler => sub {
+          my ($c, $path) = @_;
+          if ($path =~ /\.(md|mkdn)$/) {
+              my $text = file($path)->slurp;
+              my $html = markdown( decode_utf8($text) );
+              $c->render( inline => $html );
+          }
+      }
+  };
+
+CODEREF for handle a request file.
+
+if not rendered in CODEREF, serve as static file.
 
 =head1 AUTHOR
 
-hayajo <hayajo@cpan.org>
+hayajo E<lt>hayajo@cpan.orgE<gt>
 
 =head1 SEE ALSO
 
