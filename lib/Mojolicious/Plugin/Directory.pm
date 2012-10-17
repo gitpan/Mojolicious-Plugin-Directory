@@ -1,12 +1,13 @@
 package Mojolicious::Plugin::Directory;
 use strict;
 use warnings;
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use Cwd ();
 use Encode ();
 use DirHandle;
 use Mojo::Base qw{ Mojolicious::Plugin };
+use Mojolicious::Types;
 
 # Stolen from Plack::App::Direcotry
 my $dir_page = <<'PAGE';
@@ -51,15 +52,11 @@ sub register {
     $app->hook(
         before_dispatch => sub {
             my $c = shift;
-            return render_file( $c, $root )
-                if ( -f $root->to_string() );
+            return render_file( $c, $root ) if ( -f $root->to_string() );
             given ( my $path = $root->rel_dir( Mojo::Util::url_unescape( $c->req->url->path ) ) ) {
-                when (-f) {
-                    $handler->( $c, $path )
-                        if ( $handler && ref $handler eq 'CODE' );
-                    render_file( $c, $path ) unless ( $c->tx->res->code );
-                }
-                when (-d) { render_indexes( $c, $path ) }
+                $handler->( $c, $path ) if ( ref $handler eq 'CODE' );
+                when (-f) { render_file( $c, $path ) unless ( $c->tx->res->code ) }
+                when (-d) { render_indexes( $c, $path ) unless ( $c->tx->res->code ) }
                 default   {}
             }
         },
@@ -145,7 +142,7 @@ Mojolicious::Plugin::Directory - Serve static files from document root with dire
   use Encode qw{ decode_utf8 };
   plugin('Directory', root => "/path/to/htdocs", handler => sub {
       my ($c, $path) = @_;
-      if ($path =~ /\.(md|mkdn)$/) {
+      if ( -f $path && $path =~ /\.(md|mkdn)$/ ) {
           my $text = file($path)->slurp;
           my $html = markdown( decode_utf8($text) );
           $c->render( inline => $html );
@@ -162,11 +159,11 @@ L<Mojolicious::Plugin::Directory> is a static file server directory index a la A
 
 =head1 METHODS
 
-L<Mojolicious::Plugin::Process> inherits all methods from L<Mojolicios::Plugin>.
+L<Mojolicious::Plugin::Directory> inherits all methods from L<Mojolicious::Plugin>.
 
 =head1 OPTIONS
 
-Mojolicious::Plugin::Directory supports the following options.
+L<Mojolicious::Plugin::Directory> supports the following options.
 
 =head2 C<root>
 
