@@ -22,5 +22,5 @@ requires:
   Mojolicious: 3.02
 resources:
   license: http://dev.perl.org/licenses/
-  repository: https://github.com/hayajo/Mojolicious-Plugin-Directory.git
-version: 0.05
+  repository: git://github.com/hayajo/Mojolicious-Plugin-Directory.git
+version: 0.06

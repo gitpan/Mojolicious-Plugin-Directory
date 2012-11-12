@@ -6,6 +6,7 @@ inc/Module/Install/Fetch.pm
 inc/Module/Install/Include.pm
 inc/Module/Install/Makefile.pm
 inc/Module/Install/Metadata.pm
+inc/Module/Install/ReadmePodFromPod.pm
 inc/Module/Install/Repository.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
@@ -19,6 +20,8 @@ t/00_compile.t
 t/default.t
 t/dir.t
 t/dir/delete.me
+t/dir/index.html
+t/dir_index.t
 t/dir_page.t
 t/dummy.txt
 t/file.t
