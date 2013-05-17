@@ -1,7 +1,7 @@
 package Mojolicious::Plugin::Directory;
 use strict;
 use warnings;
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 use Cwd ();
 use Encode ();
@@ -85,7 +85,7 @@ sub render_file {
     my $c    = shift;
     my $file = shift;
     my $data = Mojo::Util::slurp($file);
-    $c->render_data( $data, format => get_ext($file) || 'txt' );
+    $c->render( data => $data, format => get_ext($file) || 'txt' );
 }
 
 sub render_indexes {

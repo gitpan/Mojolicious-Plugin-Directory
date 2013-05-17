@@ -1,4 +1,8 @@
-Revision history for Perl extension Mojolicious::Plugin::Directory
+Revision history for Mojolicious-Plugin-Directory
+
+0.07  2013-05-17 11:50:14 JST
+        - changed to Mojolicious::Controller#render from Mojolicious::Controller#render_data
+        - millaize
 
 0.06
         - added dir_index configuration

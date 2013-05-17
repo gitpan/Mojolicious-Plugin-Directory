@@ -1,27 +1,87 @@
-This is Perl module Mojolicious::Plugin::Directory.
+NAME
+    Mojolicious::Plugin::Directory - Serve static files from document root
+    with directory index
 
-INSTALLATION
+SYNOPSIS
+      # simple usage
+      use Mojolicious::Lite;
+      plugin( 'Directory', root => "/path/to/htdocs" )->start;
 
-Mojolicious::Plugin::Directory installation is straightforward. If your CPAN shell is set up,
-you should just be able to do
+      # with handler
+      use Text::Markdown qw{ markdown };
+      use Path::Class;
+      use Encode qw{ decode_utf8 };
+      plugin('Directory', root => "/path/to/htdocs", handler => sub {
+          my ($c, $path) = @_;
+          if ( -f $path && $path =~ /\.(md|mkdn)$/ ) {
+              my $text = file($path)->slurp;
+              my $html = markdown( decode_utf8($text) );
+              $c->render( inline => $html );
+          }
+      })->start;
 
-    % cpan Mojolicious::Plugin::Directory
+      or
 
-Download it, unpack it, then build it as per the usual:
+      > perl -Mojo -E 'a->plugin("Directory", root => "/path/to/htdocs")->start' daemon
 
-    % perl Makefile.PL
-    % make && make test
+DESCRIPTION
+    Mojolicious::Plugin::Directory is a static file server directory index a
+    la Apache's mod_autoindex.
 
-Then install it:
+METHODS
+    Mojolicious::Plugin::Directory inherits all methods from
+    Mojolicious::Plugin.
 
-    % make install
+OPTIONS
+    Mojolicious::Plugin::Directory supports the following options.
 
-DOCUMENTATION
+  "root"
+      # Mojolicious::Lite
+      plugin Directory => { root => "/path/to/htdocs" };
 
-Mojolicious::Plugin::Directory documentation is available as in POD. So you can do:
+    Document root directory. Defaults to the current directory.
 
-    % perldoc Mojolicious::Plugin::Directory
+    if root is a file, serve only root file.
 
-to read the documentation online with your favorite pager.
+  "dir_index"
+      # Mojolicious::Lite
+      plugin Directory => { dir_index => [qw/index.html index.htm/] };
 
-hayato imai
+    like a Apache's DirectoryIndex directive.
+
+  "dir_page"
+      # Mojolicious::Lite
+      plugin Directory => { dir_page => $template_str };
+
+    a HTML template of index page
+
+  "handler"
+      # Mojolicious::Lite
+      use Text::Markdown qw{ markdown };
+      use Path::Class;
+      use Encode qw{ decode_utf8 };
+      plugin Directory => {
+          handler => sub {
+              my ($c, $path) = @_;
+              if ($path =~ /\.(md|mkdn)$/) {
+                  my $text = file($path)->slurp;
+                  my $html = markdown( decode_utf8($text) );
+                  $c->render( inline => $html );
+              }
+          }
+      };
+
+    CODEREF for handle a request file.
+
+    if not rendered in CODEREF, serve as static file.
+
+AUTHOR
+    hayajo <hayajo@cpan.org>
+
+SEE ALSO
+    Plack::App::Directory
+
+LICENSE
+    This library is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+
