@@ -1,5 +1,9 @@
 Revision history for Mojolicious-Plugin-Directory
 
+0.08  2013-06-09 16:34:06 JST
+        - added auto_index configuration. thanks ChinaXing@github
+        - added json configuration.
+
 0.07  2013-05-17 11:50:14 JST
         - changed to Mojolicious::Controller#render from Mojolicious::Controller#render_data
         - millaize

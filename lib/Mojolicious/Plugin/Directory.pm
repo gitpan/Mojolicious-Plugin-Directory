@@ -1,7 +1,7 @@
 package Mojolicious::Plugin::Directory;
 use strict;
 use warnings;
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 use Cwd ();
 use Encode ();
@@ -45,25 +45,27 @@ sub register {
     my $self = shift;
     my ( $app, $args ) = @_;
 
-    my $root    = Mojo::Home->new( $args->{root} || Cwd::getcwd );
-    my $handler = $args->{handler};
-    my $index   = $args->{dir_index};
-    $dir_page   = $args->{dir_page} if ( $args->{dir_page} );
+    my $root       = Mojo::Home->new( $args->{root} || Cwd::getcwd );
+    my $handler    = $args->{handler};
+    my $index      = $args->{dir_index};
+    my $auto_index = $args->{auto_index} // 1;
+    my $json       = $args->{json};
+    $dir_page = $args->{dir_page} if ( $args->{dir_page} );
 
     $app->hook(
         before_dispatch => sub {
             my $c = shift;
-            return render_file( $c, $root ) if ( -f $root->to_string() );
-            given ( my $path = $root->rel_dir( Mojo::Util::url_unescape( $c->req->url->path ) ) ) {
-                $handler->( $c, $path ) if ( ref $handler eq 'CODE' );
-                when (-f) { render_file( $c, $path ) unless ( $c->tx->res->code ) }
-                when (-d) {
-                    if ( $index && ( my $file = locate_index( $index, $path ) ) ) {
-                        return render_file( $c, $file );
-                    }
-                    render_indexes( $c, $path ) unless ( $c->tx->res->code )
+            return render_file( $c, $root, $handler ) if ( -f $root->to_string() );
+            my $path = $root->rel_dir( Mojo::Util::url_unescape( $c->req->url->path ) );
+            if ( -f $path ) {
+                render_file( $c, $path, $handler );
+            }
+            elsif ( -d $path ) {
+                if ( $index && ( my $index_path = locate_index( $index, $path ) ) ) {
+                    return render_file( $c, $index_path, $handler );
                 }
-                default {}
+
+                render_indexes( $c, $path, $json ) unless not $auto_index;
             }
         },
     );
@@ -82,18 +84,22 @@ sub locate_index {
 }
 
 sub render_file {
-    my $c    = shift;
-    my $file = shift;
-    my $data = Mojo::Util::slurp($file);
-    $c->render( data => $data, format => get_ext($file) || 'txt' );
+    my $c       = shift;
+    my $path    = shift;
+    my $handler = shift;
+    $handler->( $c, $path ) if ( ref $handler eq 'CODE' );
+    return if ( $c->tx->res->code );
+    my $data = Mojo::Util::slurp($path);
+    $c->render( data => $data, format => get_ext($path) || 'txt' );
 }
 
 sub render_indexes {
-    my $c   = shift;
-    my $dir = shift;
+    my $c    = shift;
+    my $dir  = shift;
+    my $json = shift;
 
     my @files =
-        ( $c->req->url eq '/' )
+        ( $c->req->url->path eq '/' )
         ? ()
         : ( { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '' } );
     my $children = list_files($dir);
@@ -126,7 +132,16 @@ sub render_indexes {
         };
     }
 
-    $c->render( inline => $dir_page, files => \@files, cur_path => $cur_path );
+    my $any = { inline => $dir_page, files => \@files, cur_path => $cur_path };
+    if ($json) {
+        $c->respond_to(
+            json => { json => Mojo::JSON->new->encode(\@files) },
+            any  => $any,
+        );
+    }
+    else {
+        $c->render( %$any );
+    }
 }
 
 sub get_ext {
@@ -195,14 +210,21 @@ L<Mojolicious::Plugin::Directory> supports the following options.
 
 Document root directory. Defaults to the current directory.
 
-if root is a file, serve only root file.
+If root is a file, serve only root file.
+
+=head2 C<auto_index>
+
+   # Mojolicious::Lite
+   plugin Directory => { auto_index => 0 };
+
+Automatically generate index page for directory, default true.
 
 =head2 C<dir_index>
 
   # Mojolicious::Lite
   plugin Directory => { dir_index => [qw/index.html index.htm/] };
 
-like a Apache's DirectoryIndex directive.
+Like a Apache's DirectoryIndex directive.
 
 =head2 C<dir_page>
 
@@ -230,11 +252,30 @@ a HTML template of index page
 
 CODEREF for handle a request file.
 
-if not rendered in CODEREF, serve as static file.
+If not rendered in CODEREF, serve as static file.
+
+=head2 C<json>
+
+  # Mojolicious::Lite
+  # /dir (Accept: application/json)
+  # /dir?format=json
+  plugin Directory => { json => 1 };
+
+Enable json response.
 
 =head1 AUTHOR
 
 hayajo E<lt>hayajo@cpan.orgE<gt>
+
+=head1 CONTRIBUTORS
+
+Many thanks to the contributors for their work.
+
+=over 4
+
+=item ChinaXing
+
+=back
 
 =head1 SEE ALSO
 
